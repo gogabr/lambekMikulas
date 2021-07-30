@@ -355,6 +355,209 @@ Section LambekCalculus.
        apply C12p.
    Qed.
 
+   Lemma arrowLeftSound U W (t: transitive U W) v x A B:
+     x <> [] ->
+     seqTrue U W v ((A :: x) ⇒ B) <-> seqTrue U W v (x ⇒ A \\ B).
+   Proof.
+     intros NE.
+     unfold seqTrue.
+     split.
+     - intros H p.
+       unfold seqValuation.
+       destruct x as [| X x]. 1: congruence.
+       unfold seqValuation in H.
+       intros SV.
+       simpl.
+       intros p1 FVA p2 C1p2.
+       set (HH := H p2).
+       apply HH.
+       apply strValuationToFormValuationRight. 1: apply t.
+       simpl.
+       exists p1. split. 1: assumption.
+       exists p. split. 2: assumption.
+       apply strValuationToFormValuationRight in SV. 2: apply t.
+       assumption.
+     - intros H p.
+       unfold seqValuation.
+       destruct x as [|X x]. 1: congruence.
+       intros SV.
+       simpl in H.
+       apply strValuationToFormValuationRight in SV. 2: apply t.
+       simpl in SV.
+       destruct SV as [p1 [FVA [p2 [FVx C12p]]]].
+       apply strValuationToFormValuationRight in FVx. 2: apply t.
+       apply (H p2 FVx p1 FVA p C12p).
+   Qed.
+
+
+   Lemma MulInSeqTrue U W (t: transitive U W) v x A B z CC:
+     seqTrue U W v ((x ++ (A ° B :: z)) ⇒ CC) <-> seqTrue U W v ((x ++ A :: B :: z) ⇒ CC).
+   Proof.
+     generalize dependent CC.
+     induction x as [| X x].
+     - intros CC. simpl.
+       unfold seqTrue.
+       split.
+       + intros H p.
+           unfold seqValuation.
+           intros SV.
+           unfold seqValuation in H.
+           simpl in SV.
+           apply H.
+           assumption.
+       + intros H p.
+           unfold seqValuation.
+           intros SV.
+           unfold seqValuation in H.
+           set (HH := H p).
+           simpl in HH.
+           apply (HH SV).
+     - intros CC. simpl.
+       set (IHXC := IHx (X \\ CC)).
+       repeat rewrite (arrowLeftSound U W t v).  1: assumption.
+       all: apply not_eq_sym, app_cons_not_nil.
+   Qed.
+
+   Lemma PointwiseMultLeft1 U W v A B X p
+     (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p')
+     (H: formValuation U W v (A ° X) p):
+     formValuation U W v (B ° X) p.
+   Proof.
+     simpl. simpl in H.
+     destruct H as [p1 [FVA [p2 [FVX C12p]]]].
+     exists p1. split. 1:{ apply ABEq. assumption. }
+     exists p2. auto.
+   Qed.
+
+   Lemma PointwiseMultLeft U W v A B X p
+     (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p'):
+     formValuation U W v (A ° X) p <-> formValuation U W v (B ° X) p.
+   Proof.
+     split.
+     - apply PointwiseMultLeft1. assumption.
+     - apply PointwiseMultLeft1. intros. rewrite (ABEq p'). apply iff_refl.
+   Qed.
+
+   Lemma PointwiseMultRight1 U W v A B X p
+     (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p')
+     (H: formValuation U W v (X ° A) p):
+     formValuation U W v (X ° B) p.
+   Proof.
+     simpl. simpl in H.
+     destruct H as [p1 [FVX [p2 [FVA C12p]]]].
+     exists p1. split. 1:assumption.
+     exists p2. split. 1:{ apply ABEq. assumption. }
+     assumption.
+   Qed.
+
+   Lemma PointwiseMultRight U W v A B X p
+     (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p'):
+     formValuation U W v (X ° A) p <-> formValuation U W v (X ° B) p.
+   Proof.
+     split.
+     - apply PointwiseMultRight1. assumption.
+     - apply PointwiseMultRight1.
+       intros. rewrite ABEq. apply iff_refl.
+   Qed.
+
+   Lemma LeftMultRearrange  U W (t: transitive U W) v A B X p
+     (H: formValuation U W v (A \\ B ° X) p):
+     formValuation U W v (A \\ (B ° X)) p.
+   Proof.
+     simpl. simpl in H.
+     intros p1 FVA p2 C1p2.
+     destruct H as [p3 [HH [p4 [FVX C34p]]]].
+     destruct p1 as [[u1 u2] Wp1].
+     destruct p2 as [[u1' u4] Wp2].
+     destruct p3 as [[u2' u3] Wp3].
+     destruct p4 as [[u3' u4'] Wp4].
+     destruct p as [[u2'' u4''] Wp].
+     destruct C1p2 as [C1p21 [C1p22 C1p23]].
+     destruct C34p as [C34p1 [C34p2 C34p3]].
+     simpl in *. subst.
+     set (Wpred := Wpred U W).
+     set (pB := exist Wpred (u1', u3') (t _ _ _ Wp1 Wp3)).
+     set (p1 := exist Wpred (u1', u2'') Wp1).
+     set (p3 := exist Wpred (u2'', u3') Wp3).
+     set (p4 := exist Wpred (u3', u4) Wp4).
+     exists pB. split.
+     - apply (HH p1 FVA pB).
+       repeat (split; auto).
+     - exists p4. split.
+       1: assumption.
+       repeat (split; auto).
+   Qed.
+
+   Lemma PointwiseReplaceInStrHead1 U W v A B z p
+     (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p'):
+     strValuation U W v A z p -> strValuation U W v B z p.
+   Proof.
+     generalize dependent A.
+     generalize dependent B.
+     induction z as [| Z z].
+     - intros. simpl. simpl in H. apply ABEq. assumption.
+     - intros. simpl. simpl in H.
+       apply (IHz (B ° Z) (A ° Z)). 2: assumption.
+       intro p'.
+       apply PointwiseMultLeft.
+       assumption.
+   Qed.
+
+   Lemma PointwiseReplaceInStrHead U W v A B z p
+     (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p'):
+     strValuation U W v A z p <-> strValuation U W v B z p.
+   Proof.
+     split.
+     - apply PointwiseReplaceInStrHead1. assumption.
+     - apply PointwiseReplaceInStrHead1.
+       intro p'. rewrite ABEq. apply iff_refl.
+   Qed.
+
+   Lemma PointwiseReplaceInStrTail U W (t: transitive U W) v X x A B z p :
+     (forall p', formValuation U W v A p' <-> formValuation U W v B p') ->
+               strValuation U W v X (x ++ A :: z) p -> strValuation U W v X (x ++ B :: z) p.
+   Proof.
+     intros H.
+     generalize dependent X.
+     induction x as [| X' x].
+     - intro X. simpl.
+       generalize dependent A.
+       generalize dependent B.
+       induction z as [| Z z].
+       + intros B A H.
+           simpl.
+           intros [p1 [FVX [p2 [FVA CCC]]]].
+           exists p1. split. 1: assumption.
+           exists p2. split. 1: { apply H. assumption. }
+           assumption.
+       + intros B A H SVXA.
+         simpl. simpl in SVXA.
+         set (IHz':= IHz (B ° Z) (A ° Z)).
+         assert (forall p', formValuation U W v (X ° (A ° Z)) p' <-> formValuation U W v (X ° (B ° Z)) p') as XAZeqXBZ. {
+           intro p'.
+           apply PointwiseMultRight.
+           intro.
+           apply PointwiseMultLeft.
+           assumption. }
+         rewrite (PointwiseReplaceInStrHead _ _ _ (X ° B ° Z) (X ° (B ° Z))).
+         2: { apply strAssoc. apply t. }
+         apply IHz'.
+         1: { intro p'. apply PointwiseMultLeft. assumption. }
+         apply (PointwiseReplaceInStrHead _ _ _ (X ° (A ° Z)) (X ° A ° Z)).
+         1: { intro p'. rewrite strAssoc. 2: apply t. apply iff_refl. }
+         assumption.
+     - intro X. simpl.
+       apply (IHx (X ° X')).
+   Qed.
+
+   Lemma leftArrowAtPoint U W (t: transitive U W) v X x A B Z z p :
+     strValuation U W v X (x ++ A \\ B :: Z :: z) p -> strValuation U W v X (x ++ A \\ (B ° Z) :: z) p.
+   Proof.
+     intros.
+     induction x.
+     - simpl. simpl in H.
+   Admitted.
+
    Lemma Soundness: forall Γ s, Γ ⊢ s -> Γ ⊨ s.
    Proof.
      intros Γ s [NE HH].
@@ -392,71 +595,19 @@ Section LambekCalculus.
            set (TG := RR p1 FVAA p C12p).
            assumption.
          * intros B HH2 IHHH2 StrVal.
-           simpl. simpl in IHHH2.
+           simpl in IHHH2.
            apply (IHz (B ° Z)).
            **  apply (mulArrow Γ [] B Z z CC). assumption.
            **  unfold semConsequence. split. 1: apply NE.
+               intros.
+               rewrite MulInSeqTrue. 2: apply t0.
+               simpl.
+               unfold semConsequence in IHHH2.
+               destruct IHHH2 as [_ IHHH2].
+               apply (IHHH2 U0 W0 t0 v0 H).
+           ** simpl in StrVal.
    Admitted.
 
-   Lemma MulInSeqTrue U W v x A B z CC:
-     seqTrue U W v ((x ++ (A ° B :: z)) ⇒ CC) <-> seqTrue U W v ((x ++ A :: B :: z) ⇒ CC).
-   Proof.
-     generalize dependent CC.
-     induction x as [| X x].
-     - intros CC. simpl.
-       unfold seqTrue.
-       split.
-       + intros H p.
-           unfold seqValuation.
-           intros SV.
-           unfold seqValuation in H.
-           simpl in SV.
-           apply H.
-           assumption.
-       + intros H p.
-           unfold seqValuation.
-           intros SV.
-           unfold seqValuation in H.
-           set (HH := H p).
-           simpl in HH.
-           apply (HH SV).
-     - intros CC. simpl.
-       set (IHXC := IHx (X \\ CC)).
-   Admitted.
-
-   Lemma arrowLeftSound U W (t: transitive U W) v x A B:
-     x <> [] ->
-     seqTrue U W v ((A :: x) ⇒ B) <-> seqTrue U W v (x ⇒ A \\ B).
-   Proof.
-     intros NE.
-     unfold seqTrue.
-     split.
-     - intros H p.
-       unfold seqValuation.
-       destruct x as [| X x]. 1: congruence.
-       unfold seqValuation in H.
-       intros SV.
-       simpl.
-       intros p1 FVA p2 C1p2.
-       set (HH := H p2).
-       apply HH.
-       apply strValuationToFormValuationRight. 1: apply t.
-       simpl.
-       exists p1. split. 1: assumption.
-       exists p. split. 2: assumption.
-       apply strValuationToFormValuationRight in SV. 2: apply t.
-       assumption.
-     - intros H p.
-       unfold seqValuation.
-       destruct x as [|X x]. 1: congruence.
-       intros SV.
-       simpl in H.
-       apply strValuationToFormValuationRight in SV. 2: apply t.
-       simpl in SV.
-       destruct SV as [p1 [FVA [p2 [FVx C12p]]]].
-       apply strValuationToFormValuationRight in FVx. 2: apply t.
-       apply (H p2 FVx p1 FVA p C12p).
-   Qed.
 
    Lemma Completeness: forall Γ s, Γ ⊨ s -> Γ ⊢ s.
    Admitted.

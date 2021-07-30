@@ -45,7 +45,7 @@ Section LambekCalculus.
                   (p2: GenProof Γ ((y ++ B::z) ⇒ C))
        : GenProof Γ ((y ++ (B // A) :: X :: x ++ z) ⇒ C)
      | arrowRight (X: Formula) (x: str) (A B: Formula) (p: GenProof Γ ((X :: x ++ [A]) ⇒ B))
-       : GenProof Γ ((X::x) ⇒ B \\ A)
+       : GenProof Γ ((X::x) ⇒ B // A)
      | mulArrow (x: str) (A B: Formula) (y: str) (C: Formula)
                 (p: GenProof Γ ((x ++ A :: B :: y) ⇒ C))
        : GenProof Γ ((x ++ (A ° B) :: y) ⇒ C)
@@ -560,6 +560,16 @@ Section LambekCalculus.
        apply (IHx (X' ° X)).
    Qed.
 
+   Lemma leftElimSema U W v A B p1 p2 p
+         (FVA: formValuation U W v A p1)
+         (FVDiv: formValuation U W v (A \\ B) p2)
+         (C12p: C U W p1 p2 p):
+     formValuation U W v B p.
+   Proof.
+     simpl in FVDiv.
+     apply (FVDiv p1 FVA p). apply C12p.
+   Qed.
+
    Lemma Soundness: forall Γ s, Γ ⊢ s -> Γ ⊨ s.
    Proof.
      intros Γ s [NE HH].
@@ -573,9 +583,13 @@ Section LambekCalculus.
        intro. assumption.
      - unfold semConsequence. split. 1: apply NE.
        intros U W t v allΓ p.
+       rewrite app_assoc.
        unfold seqValuation.
-       induction y.
-       + simpl. intros strVal.
+       generalize dependent p.
+       generalize dependent CC.
+       induction y as [| Y y].
+       + intros CC HH2 IHHH2 p.
+           simpl. intro strVal.
            generalize dependent B.
            induction z as [| Z z].
          * intros B _ IHHH2 strVal.
@@ -612,7 +626,45 @@ Section LambekCalculus.
               apply PointwiseReplaceInStrTail with (A:=(A \\ B) ° Z). 1: apply t.
               { apply LeftMultRearrange. apply t. }
               assumption.
-       +
+       + intros CC HH2 IHHH2 p. simpl.
+           intros StrVal.
+           set (IHy':= IHy (Y \\ CC)).
+           assert (GenProof Γ ((y ++ B :: z) ⇒ (Y \\ CC))) as HH2'. {
+             destruct y as [| Y' y'].
+             - simpl.
+               apply (arrowLeft Γ B z Y CC HH2).
+             - simpl.
+               apply (arrowLeft Γ Y' (y' ++ B :: z) Y CC HH2).
+           }
+           assert (Γ ⊨ (y ++ B :: z) ⇒ Y \\ CC) as IHHH2'. {
+             unfold semConsequence.
+             split. 1:apply NE.
+             intros U0 W0 t0 v0 allΓ0.
+             apply arrowLeftSound.
+              * apply t0.
+              * apply not_eq_sym. apply app_cons_not_nil.
+              * apply IHHH2. 1: apply t0.
+                apply allΓ0.
+           }
+           set (IHy'' := IHy' HH2' IHHH2').
+           assert ([] <> ((y ++ X :: x) ++ A \\ B :: z)) as RNE by apply app_cons_not_nil.
+           destruct ((y ++ X :: x) ++ A \\ B :: z) as [|R r]. 1:congruence.
+           clear RNE.
+           apply strValuationToFormValuationRight in StrVal.
+           simpl in StrVal.
+           destruct StrVal as [p1 [FVY [p2 [FVR C12p]]]].
+           set (IHy''' := IHy'' p2).
+           rewrite strValuationToFormValuationRight in IHy'''.
+           apply IHy''' in FVR.
+           apply (leftElimSema U W v Y CC p1 p2 p). all:assumption.
+     - unfold semConsequence. unfold semConsequence in IHHH.
+       destruct IHHH as [_ IHHH].
+       split. 1:assumption.
+       intros. rewrite <- arrowLeftSound. 2:apply t. 2:congruence.
+       apply IHHH. 1:apply t. assumption.
+     - admit.
+     - admit.
+
    Admitted.
 
 

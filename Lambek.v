@@ -419,13 +419,13 @@ Section LambekCalculus.
    Qed.
 
    Lemma PointwiseMultLeft1 U W v A B X p
-     (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p')
+     (AtoB: forall p', formValuation U W v A p' -> formValuation U W v B p')
      (H: formValuation U W v (A ° X) p):
      formValuation U W v (B ° X) p.
    Proof.
      simpl. simpl in H.
      destruct H as [p1 [FVA [p2 [FVX C12p]]]].
-     exists p1. split. 1:{ apply ABEq. assumption. }
+     exists p1. split. 1:{ apply AtoB. assumption. }
      exists p2. auto.
    Qed.
 
@@ -434,19 +434,18 @@ Section LambekCalculus.
      formValuation U W v (A ° X) p <-> formValuation U W v (B ° X) p.
    Proof.
      split.
-     - apply PointwiseMultLeft1. assumption.
-     - apply PointwiseMultLeft1. intros. rewrite (ABEq p'). apply iff_refl.
+     all:(apply PointwiseMultLeft1; intros;  apply ABEq; assumption).
    Qed.
 
    Lemma PointwiseMultRight1 U W v A B X p
-     (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p')
+     (AtoB: forall p', formValuation U W v A p' -> formValuation U W v B p')
      (H: formValuation U W v (X ° A) p):
      formValuation U W v (X ° B) p.
    Proof.
      simpl. simpl in H.
      destruct H as [p1 [FVX [p2 [FVA C12p]]]].
      exists p1. split. 1:assumption.
-     exists p2. split. 1:{ apply ABEq. assumption. }
+     exists p2. split. 1:{ apply AtoB. assumption. }
      assumption.
    Qed.
 
@@ -455,9 +454,7 @@ Section LambekCalculus.
      formValuation U W v (X ° A) p <-> formValuation U W v (X ° B) p.
    Proof.
      split.
-     - apply PointwiseMultRight1. assumption.
-     - apply PointwiseMultRight1.
-       intros. rewrite ABEq. apply iff_refl.
+     all:( apply PointwiseMultRight1; intros; apply ABEq; assumption).
    Qed.
 
    Lemma LeftMultRearrange  U W (t: transitive U W) v A B X p
@@ -514,7 +511,7 @@ Section LambekCalculus.
    Qed.
 
    Lemma PointwiseReplaceInStrTail U W (t: transitive U W) v X x A B z p :
-     (forall p', formValuation U W v A p' <-> formValuation U W v B p') ->
+     (forall p', formValuation U W v A p' -> formValuation U W v B p') ->
                strValuation U W v X (x ++ A :: z) p -> strValuation U W v X (x ++ B :: z) p.
    Proof.
      intros H.
@@ -533,16 +530,16 @@ Section LambekCalculus.
        + intros B A H SVXA.
          simpl. simpl in SVXA.
          set (IHz':= IHz (B ° Z) (A ° Z)).
-         assert (forall p', formValuation U W v (X ° (A ° Z)) p' <-> formValuation U W v (X ° (B ° Z)) p') as XAZeqXBZ. {
+         assert (forall p', formValuation U W v (X ° (A ° Z)) p' -> formValuation U W v (X ° (B ° Z)) p') as XAZeqXBZ. {
            intro p'.
-           apply PointwiseMultRight.
+           apply PointwiseMultRight1.
            intro.
-           apply PointwiseMultLeft.
+           apply PointwiseMultLeft1.
            assumption. }
          rewrite (PointwiseReplaceInStrHead _ _ _ (X ° B ° Z) (X ° (B ° Z))).
          2: { apply strAssoc. apply t. }
          apply IHz'.
-         1: { intro p'. apply PointwiseMultLeft. assumption. }
+         1: { intro p'. apply PointwiseMultLeft1. assumption. }
          apply (PointwiseReplaceInStrHead _ _ _ (X ° (A ° Z)) (X ° A ° Z)).
          1: { intro p'. rewrite strAssoc. 2: apply t. apply iff_refl. }
          assumption.
@@ -550,13 +547,18 @@ Section LambekCalculus.
        apply (IHx (X ° X')).
    Qed.
 
-   Lemma leftArrowAtPoint U W (t: transitive U W) v X x A B Z z p :
-     strValuation U W v X (x ++ A \\ B :: Z :: z) p -> strValuation U W v X (x ++ A \\ (B ° Z) :: z) p.
+   Lemma strValuationStepInMiddle U W (t: transitive U W) v X x A B z p:
+     strValuation U W v X (x ++ A :: B :: z) p <->
+     strValuation U W v X (x ++ (A ° B) :: z) p.
    Proof.
-     intros.
-     induction x.
-     - simpl. simpl in H.
-   Admitted.
+     generalize dependent X.
+     induction x as [| X x].
+     - simpl. intro X.
+       apply PointwiseReplaceInStrHead.
+       intros p'. apply strAssoc. apply t.
+     - simpl. intros X'.
+       apply (IHx (X' ° X)).
+   Qed.
 
    Lemma Soundness: forall Γ s, Γ ⊢ s -> Γ ⊨ s.
    Proof.
@@ -606,6 +608,11 @@ Section LambekCalculus.
                destruct IHHH2 as [_ IHHH2].
                apply (IHHH2 U0 W0 t0 v0 H).
            ** simpl in StrVal.
+              apply strValuationStepInMiddle in StrVal. 2:apply t.
+              apply PointwiseReplaceInStrTail with (A:=(A \\ B) ° Z). 1: apply t.
+              { apply LeftMultRearrange. apply t. }
+              assumption.
+       +
    Admitted.
 
 

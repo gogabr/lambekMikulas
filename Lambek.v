@@ -2,55 +2,7 @@ Require Import List.
 Import ListNotations.
 From Coq Require Import Relations.
 Require Import Coq.Logic.Classical_Prop.
-
-Definition splitNE {T: Type} (l: list T) (p: l <> []):
-                             sig (fun s: T * list T => l = fst s :: snd s).
-Proof.
-  destruct l as [|X x].
-  - congruence.
-  - exists (X, x).
-    reflexivity.
-Defined.
-
-Definition splitNEs {T: Type} (l: list T) (p: [] <> l):
-                             sig (fun s: T * list T => l = fst s :: snd s).
-Proof.
-  apply (splitNE l).
-  apply not_eq_sym.
-  assumption.
-Defined.
-
-Definition splitTl {T: Type} (h: list T) (E: T) (z: list T):
-                             sig (fun s: T * list T => h ++ E :: z = fst s :: snd s).
-Proof.
-  apply (splitNEs (h ++ E :: z)).
-  apply app_cons_not_nil.
-Defined.
-
-Definition rSplitNE {T: Type} (l: list T) (p: l <> []):
-                             sig (fun s: list T * T => l = fst s ++ [snd s]).
-Proof.
-  Search _ (?x ++ ?y::?z).
-  destruct (exists_last p) as [x [X a]].
-  exists (x,X).
-  simpl.
-  exact a.
-Defined.
-
-Definition rSplitNEs {T: Type} (l: list T) (p: [] <> l):
-                             sig (fun s: list T * T => l = fst s ++ [snd s]).
-Proof.
-  apply (rSplitNE l).
-  apply not_eq_sym.
-  assumption.
-Defined.
-
-Definition rSplitTl {T: Type} (h: list T) (E: T) (z: list T):
-                             sig (fun s: list T * T => h ++ E :: z = fst s ++ [snd s]).
-Proof.
-  apply (rSplitNEs (h ++ E :: z)).
-  apply app_cons_not_nil.
-Defined.
+Require Import NonEmptyList.
 
 Section LambekCalculus.
   Variable types: Type.
@@ -108,27 +60,6 @@ Section LambekCalculus.
 
   Notation "Γ ⊢ s" := (ProofWithNonEmptyPremises Γ s) (at level 60, no associativity).
 
-   (* Lemma FormulaProof (x: str) (X: Formula) (C: Formula):  *)
-   (*   Proof (x ++ [X], C) <-> Proof ([fold_right mul X x], C). *)
-   (* Proof. *)
-   (*   generalize dependent C. *)
-   (*   induction x ; simpl. *)
-   (*   - tauto. *)
-   (*   - split. *)
-   (*     + intro. *)
-   (*       assert ([mul a (fold_right mul X x)] = [] ++ (mul a (fold_right mul X x))::[]) as RW by auto. *)
-   (*       rewrite RW. *)
-   (*       apply mulArrow. *)
-   (*       simpl. *)
-   (*       assert ([a; fold_right mul X x] = [a] ++ [fold_right mul X x]) as RW1 by auto. *)
-   (*       rewrite RW1. *)
-(*
-         assert (a :: x ++ [X] = [] ++ a :: x ++ [X]) as RW by auto.
-         rewrite RW.
-         apply mulArrow.
-         apply (mulArrow [] a (fold_right mul X x) [] C _).
-*)
-
    Fixpoint pullMultLeft (X: Formula) (x: str) :=
      match x with
      | [] => X
@@ -143,9 +74,9 @@ Section LambekCalculus.
 
    Section Semantics.
 
-     Variable U: Type.
-     Variable W: relation U.
-     Variable t: transitive U W.
+     Context (U: Type).
+     Context (W: relation U).
+     Context (t: transitive U W).
 
      Definition Wpred (x: U*U) := W (fst x) (snd x).
      Definition Wpoint := sig Wpred.
@@ -165,7 +96,7 @@ Section LambekCalculus.
 
      Definition subW := Wpoint -> Prop.
 
-     Variable valuation: types -> subW.
+     Context (valuation: types -> subW).
 
      Fixpoint formValuation (A: Formula): subW :=
        match A with
@@ -460,6 +391,41 @@ Section LambekCalculus.
        apply (H p2 FVx p1 FVA p C12p).
    Qed.
 
+   Lemma arrowRightSound {U} {W} {t: transitive U W} {v} x A B:
+     x <> [] ->
+     seqTrue U W v ((x ++ [A]) ⇒ B) <-> seqTrue U W v (x ⇒ A // B).
+   Proof.
+     intros NE.
+     unfold seqTrue.
+     split.
+     - intros H p.
+       unfold seqValuation.
+       destruct x as [| X x]. 1: congruence.
+       unfold seqValuation in H.
+       intros SV.
+(*       simpl.
+       intros p1 FVA p2 C1p2.
+       set (HH := H p2).
+       apply HH.
+       apply strValuationToFormValuationRight. 1: apply t.
+       simpl.
+       exists p1. split. 1: assumption.
+       exists p. split. 2: assumption.
+       apply strValuationToFormValuationRight in SV. 2: apply t.
+       assumption.
+     - intros H p.
+       unfold seqValuation.
+       destruct x as [|X x]. 1: congruence.
+       intros SV.
+       simpl in H.
+       apply strValuationToFormValuationRight in SV. 2: apply t.
+       simpl in SV.
+       destruct SV as [p1 [FVA [p2 [FVx C12p]]]].
+       apply strValuationToFormValuationRight in FVx. 2: apply t.
+       apply (H p2 FVx p1 FVA p C12p).
+   Qed.
+ *)
+   Admitted.
 
    Lemma MulInSeqTrue U W (t: transitive U W) v x A B z CC:
      seqTrue U W v ((x ++ (A ° B :: z)) ⇒ CC) <-> seqTrue U W v ((x ++ A :: B :: z) ⇒ CC).
@@ -789,7 +755,11 @@ Section LambekCalculus.
        intros. rewrite <- arrowLeftSound. 2:apply t. 2:congruence.
        apply IHHH. 1:apply t. assumption.
      - admit.
-     - admit.
+     - unfold semConsequence. unfold semConsequence in IHHH.
+       destruct IHHH as [_ IHHH].
+       split. 1:assumption.
+       intros.
+       admit.
      - unfold semConsequence. unfold semConsequence in IHHH.
        split. 1:assumption.
        intros U W t v allΓ.

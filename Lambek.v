@@ -72,6 +72,16 @@ Section LambekCalculus.
      | (X'::x') => X ° (pullMultRight X' x')
      end.
 
+   Lemma pullMultLeftSplit X x A:
+     pullMultLeft X (x ++ [A]) = pullMultLeft X x ° A.
+   Proof.
+     generalize dependent X.
+     induction x as [| X' x].
+     - auto.
+     - intros X. simpl.
+       apply (IHx (X ° X')).
+   Qed.
+
    Section Semantics.
 
      Context (U: Type).
@@ -391,9 +401,9 @@ Section LambekCalculus.
        apply (H p2 FVx p1 FVA p C12p).
    Qed.
 
-   Lemma arrowRightSound {U} {W} {t: transitive U W} {v} x A B:
+   Lemma arrowRightSound {U} {W} {v} x A B:
      x <> [] ->
-     seqTrue U W v ((x ++ [A]) ⇒ B) <-> seqTrue U W v (x ⇒ A // B).
+     seqTrue U W v ((x ++ [A]) ⇒ B) <-> seqTrue U W v (x ⇒ B // A).
    Proof.
      intros NE.
      unfold seqTrue.
@@ -401,31 +411,31 @@ Section LambekCalculus.
      - intros H p.
        unfold seqValuation.
        destruct x as [| X x]. 1: congruence.
-       unfold seqValuation in H.
+       simpl in H.
        intros SV.
-(*       simpl.
-       intros p1 FVA p2 C1p2.
+       simpl.
+       intros p1 FVA p2 Cp12.
        set (HH := H p2).
        apply HH.
-       apply strValuationToFormValuationRight. 1: apply t.
+       apply (strValuationToFormValuationLeft).
+       rewrite pullMultLeftSplit.
        simpl.
-       exists p1. split. 1: assumption.
-       exists p. split. 2: assumption.
-       apply strValuationToFormValuationRight in SV. 2: apply t.
-       assumption.
+       exists p. split.
+       1: { apply strValuationToFormValuationLeft in SV. assumption. }
+       exists p1. auto.
      - intros H p.
-       unfold seqValuation.
        destruct x as [|X x]. 1: congruence.
+       simpl.
+       unfold seqValuation.
        intros SV.
        simpl in H.
-       apply strValuationToFormValuationRight in SV. 2: apply t.
+       apply strValuationToFormValuationLeft in SV.
+       rewrite pullMultLeftSplit in SV.
        simpl in SV.
-       destruct SV as [p1 [FVA [p2 [FVx C12p]]]].
-       apply strValuationToFormValuationRight in FVx. 2: apply t.
-       apply (H p2 FVx p1 FVA p C12p).
+       destruct SV as [p1 [FVXx [p2 [FVA C12p]]]].
+       apply strValuationToFormValuationLeft in FVXx.
+       apply (H p1 FVXx p2 FVA p C12p).
    Qed.
- *)
-   Admitted.
 
    Lemma MulInSeqTrue U W (t: transitive U W) v x A B z CC:
      seqTrue U W v ((x ++ (A ° B :: z)) ⇒ CC) <-> seqTrue U W v ((x ++ A :: B :: z) ⇒ CC).
@@ -758,8 +768,8 @@ Section LambekCalculus.
      - unfold semConsequence. unfold semConsequence in IHHH.
        destruct IHHH as [_ IHHH].
        split. 1:assumption.
-       intros.
-       admit.
+       intros. rewrite <- arrowRightSound. 2:congruence.
+       apply IHHH. apply t. assumption.
      - unfold semConsequence. unfold semConsequence in IHHH.
        split. 1:assumption.
        intros U W t v allΓ.

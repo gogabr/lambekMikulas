@@ -4,6 +4,55 @@ Import ListNotations.
 From Coq Require Import Relations.
 Require Import Coq.Logic.Classical_Prop.
 
+Definition splitNE {T: Type} (l: list T) (p: l <> []):
+                             sig (fun s: T * list T => l = fst s :: snd s).
+Proof.
+  destruct l as [|X x].
+  - congruence.
+  - exists (X, x).
+    reflexivity.
+Defined.
+
+Definition splitNEs {T: Type} (l: list T) (p: [] <> l):
+                             sig (fun s: T * list T => l = fst s :: snd s).
+Proof.
+  apply (splitNE l).
+  apply not_eq_sym.
+  assumption.
+Defined.
+
+Definition splitTl {T: Type} (h: list T) (E: T) (z: list T):
+                             sig (fun s: T * list T => h ++ E :: z = fst s :: snd s).
+Proof.
+  apply (splitNEs (h ++ E :: z)).
+  apply app_cons_not_nil.
+Defined.
+
+Definition rSplitNE {T: Type} (l: list T) (p: l <> []):
+                             sig (fun s: list T * T => l = fst s ++ [snd s]).
+Proof.
+  Search _ (?x ++ ?y::?z).
+  destruct (exists_last p) as [x [X a]].
+  exists (x,X).
+  simpl.
+  exact a.
+Defined.
+
+Definition rSplitNEs {T: Type} (l: list T) (p: [] <> l):
+                             sig (fun s: list T * T => l = fst s ++ [snd s]).
+Proof.
+  apply (rSplitNE l).
+  apply not_eq_sym.
+  assumption.
+Defined.
+
+Definition rSplitTl {T: Type} (h: list T) (E: T) (z: list T):
+                             sig (fun s: list T * T => h ++ E :: z = fst s ++ [snd s]).
+Proof.
+  apply (rSplitNEs (h ++ E :: z)).
+  apply app_cons_not_nil.
+Defined.
+
 Section LambekCalculus.
   Variable types: Type.
 
@@ -81,6 +130,18 @@ Section LambekCalculus.
          apply (mulArrow [] a (fold_right mul X x) [] C _).
 *)
 
+   Fixpoint pullMultLeft (X: Formula) (x: str) :=
+     match x with
+     | [] => X
+     | X' :: x' => pullMultLeft (X ° X') x'
+     end.
+
+   Fixpoint pullMultRight (X : Formula) (x : str) :=
+     match x with
+     | [] => X
+     | (X'::x') => X ° (pullMultRight X' x')
+     end.
+
    Section Semantics.
 
      Variable U: Type.
@@ -142,7 +203,7 @@ Section LambekCalculus.
    Lemma strAssoc: forall X Y Z p,
        formValuation ((X ° Y) ° Z)  p <-> formValuation (X ° (Y ° Z)) p.
      Proof.
-       intros. simpl. split; intros.
+       intros. simpl. split; intros H.
        { destruct H as [w [[x [FVX [y [FVY Cxyw]]]] [z [FVZ Cwzp]]]].
           exists x. split. 1:assumption.
           destruct Cxyw as [Cxyw1 [Cxyw2 Cxyw3]].
@@ -182,12 +243,6 @@ Section LambekCalculus.
          unfold C. auto.
      Qed.
 
-     Fixpoint pullMultRight (X : Formula) (x : str) :=
-       match x with
-       | [] => X
-       | (X'::x') => X ° (pullMultRight X' x')
-       end.
-
      Lemma pullMultRightExtraction (A  X: Formula) (x : str):
        forall p,
          formValuation (pullMultRight (A ° X) x) p <-> formValuation (A ° pullMultRight  X x) p.
@@ -200,6 +255,28 @@ Section LambekCalculus.
        set (TG2 := (A ° pullMultRight X (X' :: x))).
        simpl in TG1. simpl in TG2.
        apply strAssoc.
+     Qed.
+
+     Lemma pullMultEquiv A x p:
+       formValuation (pullMultLeft A x) p <-> formValuation (pullMultRight A x) p.
+     Proof.
+       generalize dependent A.
+       induction x as [| X x].
+       - intros A. simpl. apply iff_refl.
+       - intros A.
+         set (TG := pullMultRight A (X :: x)).
+         simpl in TG. subst TG.
+         set (TG := pullMultLeft A (X :: x)).
+         simpl in TG.
+         subst TG.
+         rewrite (IHx (A ° X)).
+         apply pullMultRightExtraction.
+     Qed.
+
+     Lemma strValuationStepBack A X x p:
+       strValuation (A ° X) x p = strValuation A (X :: x) p.
+     Proof.
+       reflexivity.
      Qed.
 
      Lemma strValuationToFormValuationRight: forall A x p,
@@ -216,6 +293,7 @@ Section LambekCalculus.
          rewrite (IHx (A ° X)).
          apply pullMultRightExtraction.
      Qed.
+
    End Semantics.
 
    Definition semConsequence (Γ: list sequent) (s: sequent) :=
@@ -280,12 +358,6 @@ Section LambekCalculus.
      assert (seqValuation Singleton TotalOnSingleton ValOnSingleton ([] ⇒ A) WpointOnSingleton) as HH by apply H.
      apply HH.
    Qed.
-
-   Fixpoint pullMultLeft (X: Formula) (x: str) :=
-     match x with
-     | [] => X
-     | X' :: x' => pullMultLeft (X ° X') x'
-     end.
 
    Lemma strValuationRight: forall U W v X x A p,
        strValuation U W v X (x ++ [A]) p = strValuation U W v (pullMultLeft X x) [A] p.
@@ -570,6 +642,62 @@ Section LambekCalculus.
      apply (FVDiv p1 FVA p). apply C12p.
    Qed.
 
+   Lemma pullMultRightI U W (t: transitive U W) v X x y p:
+          formValuation U W v (pullMultRight (pullMultRight X x) y) p <->
+          formValuation U W v (pullMultRight X (x ++ y)) p.
+     Proof.
+     generalize dependent p.
+     generalize dependent X.
+     induction x.
+     - simpl. reflexivity.
+     - intros.
+       set (TG := pullMultRight (pullMultRight X (a :: x)) y). simpl in TG. subst TG.
+       set (TG := pullMultRight X ((a :: x) ++ y)). simpl in TG. subst TG.
+       rewrite pullMultRightExtraction.
+       rewrite <- (PointwiseMultRight U W v _ _ _ p (IHx a)).
+       apply iff_refl.
+       apply t.
+   Qed.
+
+   Lemma strValuationToFormValuationRightPartial U W (t: transitive U W) v
+           X x y p:
+     strValuation U W v X (x ++ y) p <-> strValuation U W v (pullMultRight X x) y p.
+   Proof.
+     repeat rewrite strValuationToFormValuationRight. 2,3: apply t.
+     generalize dependent p.
+     generalize dependent X.
+     induction x as [| X' x].
+     - intros X p. simpl.  apply iff_refl.
+     - intros X p.
+       set (TG := pullMultRight X ((X' :: x) ++ y)). simpl in TG. subst TG.
+       set (TG := pullMultRight (pullMultRight X (X' :: x))). simpl in TG. subst TG.
+       rewrite <- pullMultRightExtraction. 2: apply t.
+       rewrite (IHx (X ° X')).
+       rewrite pullMultRightExtraction. 2: apply t.
+       rewrite pullMultRightI.  2: apply t.
+       rewrite pullMultRightExtraction.  2: apply t.
+       rewrite (PointwiseMultRight U W v _ _ _ p (IHx X')).
+       apply iff_refl.
+   Qed.
+
+    Lemma strValuationSplit U W (t: transitive U W) v X x Y y p:
+       strValuation U W v X (x ++  Y :: y) p <-> formValuation U W v ((pullMultRight X x) ° (pullMultRight Y y)) p.
+     Proof.
+       split.
+       - intros H.
+         rewrite (strValuationToFormValuationRightPartial U W t v X x (Y::y) p) in H.
+         apply strValuationToFormValuationRight in H. 2: apply t.
+         set (PMR := pullMultRight (pullMultRight X x) (Y :: y)) in H.
+         simpl in PMR.
+         apply H.
+       - intros H.
+         rewrite <- (pullMultRightExtraction _ _ t) in H.
+         rewrite <- (strValuationToFormValuationRight _ _ t) in H.
+         rewrite strValuationStepBack in H.
+         rewrite <- (strValuationToFormValuationRightPartial _ _ t) in H.
+         apply H.
+     Qed.
+
    Lemma Soundness: forall Γ s, Γ ⊢ s -> Γ ⊨ s.
    Proof.
      intros Γ s [NE HH].
@@ -647,9 +775,8 @@ Section LambekCalculus.
                 apply allΓ0.
            }
            set (IHy'' := IHy' HH2' IHHH2').
-           assert ([] <> ((y ++ X :: x) ++ A \\ B :: z)) as RNE by apply app_cons_not_nil.
-           destruct ((y ++ X :: x) ++ A \\ B :: z) as [|R r]. 1:congruence.
-           clear RNE.
+           destruct (splitTl (y ++ X :: x) (A \\ B) z) as [[R r] E].
+           rewrite E in *.
            apply strValuationToFormValuationRight in StrVal.
            simpl in StrVal.
            destruct StrVal as [p1 [FVY [p2 [FVR C12p]]]].
@@ -664,7 +791,31 @@ Section LambekCalculus.
        apply IHHH. 1:apply t. assumption.
      - admit.
      - admit.
-
+     - unfold semConsequence. unfold semConsequence in IHHH.
+       split. 1:assumption.
+       intros U W t v allΓ.
+       destruct IHHH as [_ IHHH].
+       rewrite MulInSeqTrue. 2:apply t.
+       apply IHHH. 1:apply t.
+       apply allΓ.
+     - unfold semConsequence.
+       split. 1:assumption.
+       intros U W t v allΓ.
+       intros p StrVal.
+       rewrite (strValuationSplit U W t v X x Y y p) in StrVal.
+       simpl in StrVal.
+       destruct StrVal as [p1 [FVXx [p2 [FVYy C12p]]]].
+       unfold semConsequence in IHHH1. unfold semConsequence in IHHH2.
+       destruct IHHH1 as [_ IHHH1]. destruct IHHH2 as [_ IHHH2].
+       set (IH1v := IHHH1 U W t v allΓ p1). set (IH2v := IHHH2 U W t v allΓ p2).
+       unfold seqValuation in IH1v. unfold seqValuation in IH2v.
+       rewrite (strValuationToFormValuationRight _ _ t) in IH1v.
+       rewrite (strValuationToFormValuationRight _ _ t) in IH2v.
+       apply IH1v in FVXx. apply IH2v in FVYy.
+       simpl.
+       exists p1.
+       split. 1: assumption.
+       exists p2. auto.
    Admitted.
 
 

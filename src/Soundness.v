@@ -13,14 +13,14 @@ Proof.
   intros. intro XisNull.
   unfold semConsequence in H.  destruct H as [NEmp STrue].
   subst.
-  assert (forall s, In s Γ -> seqTrue Singleton TotalOnSingleton ValOnSingleton s). {
+  assert (forall s, In s Γ -> seqTrue singleton totalOnSingleton valOnSingleton s). {
     intros. unfold seqTrue. intros.  unfold seqValuation. destruct s.
     assert (nonEmptySequent (s ⇒ f)) as NE by apply NEmp, H. unfold nonEmptySequent in NE.
     destruct s. 1:{ apply NE; reflexivity. }
-    intro.  apply AllTrueOnSingleton. }
-  apply (STrue Singleton TotalOnSingleton TransitiveOnSingleton ValOnSingleton) in H.
+    intro.  apply allTrueOnSingleton. }
+  apply (STrue singleton totalOnSingleton transitiveOnSingleton valOnSingleton) in H.
   unfold seqTrue in H.
-  assert (seqValuation Singleton TotalOnSingleton ValOnSingleton ([] ⇒ A) WpointOnSingleton) as HH by apply H.
+  assert (seqValuation singleton totalOnSingleton valOnSingleton ([] ⇒ A) WpointOnSingleton) as HH by apply H.
   apply HH.
 Qed.
 
@@ -162,7 +162,7 @@ Proof.
     apply (H p1 FVXx p2 FVA p C12p).
 Qed.
 
-Lemma MulInSeqTrue U W (t: transitive U W) v x A B z CC:
+Lemma mulInSeqTrue U W (t: transitive U W) v x A B z CC:
   seqTrue U W v ((x ++ (A ° B :: z)) ⇒ CC) <-> seqTrue U W v ((x ++ A :: B :: z) ⇒ CC).
 Proof.
   generalize dependent CC.
@@ -190,7 +190,7 @@ Proof.
     all: apply not_eq_sym, app_cons_not_nil.
 Qed.
 
-Lemma PointwiseMultLeft1 U W v A B X p
+Lemma pointwiseMultLeft1 U W v A B X p
       (AtoB: forall p', formValuation U W v A p' -> formValuation U W v B p')
       (H: formValuation U W v (A ° X) p):
   formValuation U W v (B ° X) p.
@@ -201,15 +201,15 @@ Proof.
   exists p2. auto.
 Qed.
 
-Lemma PointwiseMultLeft U W v A B X p
+Lemma pointwiseMultLeft U W v A B X p
       (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p'):
   formValuation U W v (A ° X) p <-> formValuation U W v (B ° X) p.
 Proof.
   split.
-  all:(apply PointwiseMultLeft1; intros;  apply ABEq; assumption).
+  all:(apply pointwiseMultLeft1; intros;  apply ABEq; assumption).
 Qed.
 
-Lemma PointwiseMultRight1 U W v A B X p
+Lemma pointwiseMultRight1 U W v A B X p
       (AtoB: forall p', formValuation U W v A p' -> formValuation U W v B p')
       (H: formValuation U W v (X ° A) p):
   formValuation U W v (X ° B) p.
@@ -221,15 +221,15 @@ Proof.
   assumption.
 Qed.
 
-Lemma PointwiseMultRight U W v A B X p
+Lemma pointwiseMultRight U W v A B X p
       (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p'):
   formValuation U W v (X ° A) p <-> formValuation U W v (X ° B) p.
 Proof.
   split.
-  all:( apply PointwiseMultRight1; intros; apply ABEq; assumption).
+  all:( apply pointwiseMultRight1; intros; apply ABEq; assumption).
 Qed.
 
-Lemma LeftMultRearrange  U W (t: transitive U W) v A B X p
+Lemma leftMultRearrange  U W (t: transitive U W) v A B X p
       (H: formValuation U W v (A \\ B ° X) p):
   formValuation U W v (A \\ (B ° X)) p.
 Proof.
@@ -257,7 +257,7 @@ Proof.
     repeat (split; auto).
 Qed.
 
-Lemma RightMultRearrange  U W (t: transitive U W) v X B A p
+Lemma rightMultRearrange  U W (t: transitive U W) v X B A p
       (H: formValuation U W v (X ° (B // A)) p):
   formValuation U W v ((X ° B) // A) p.
 Proof.
@@ -283,7 +283,7 @@ Proof.
   split; auto.
 Qed.
 
-Lemma PointwiseReplaceInStrHead1 U W v A B z p
+Lemma pointwiseReplaceInStrHead1 U W v A B z p
       (AtoB: forall p', formValuation U W v A p' -> formValuation U W v B p'):
   strValuation U W v A z p -> strValuation U W v B z p.
 Proof.
@@ -294,18 +294,18 @@ Proof.
   - intros. simpl. simpl in H.
     apply (IHz (B ° Z) (A ° Z)). 2: assumption.
     intro p'.
-    apply PointwiseMultLeft1.
+    apply pointwiseMultLeft1.
     assumption.
 Qed.
 
-Lemma PointwiseReplaceInStrHead U W v A B z p
+Lemma pointwiseReplaceInStrHead U W v A B z p
       (ABEq: forall p', formValuation U W v A p' <-> formValuation U W v B p'):
   strValuation U W v A z p <-> strValuation U W v B z p.
 Proof.
-  split; apply PointwiseReplaceInStrHead1; intros; apply ABEq; assumption.
+  split; apply pointwiseReplaceInStrHead1; intros; apply ABEq; assumption.
 Qed.
 
-Lemma PointwiseReplaceInStrTail U W (t: transitive U W) v X x A B z p :
+Lemma pointwiseReplaceInStrTail U W (t: transitive U W) v X x A B z p :
   (forall p', formValuation U W v A p' -> formValuation U W v B p') ->
   strValuation U W v X (x ++ A :: z) p -> strValuation U W v X (x ++ B :: z) p.
 Proof.
@@ -327,22 +327,22 @@ Proof.
       set (IHz':= IHz (B ° Z) (A ° Z)).
       assert (forall p', formValuation U W v (X ° (A ° Z)) p' -> formValuation U W v (X ° (B ° Z)) p') as XAZeqXBZ. {
         intro p'.
-        apply PointwiseMultRight1.
+        apply pointwiseMultRight1.
         intro.
-        apply PointwiseMultLeft1.
+        apply pointwiseMultLeft1.
         assumption. }
-      rewrite (PointwiseReplaceInStrHead _ _ _ (X ° B ° Z) (X ° (B ° Z))).
+      rewrite (pointwiseReplaceInStrHead _ _ _ (X ° B ° Z) (X ° (B ° Z))).
       2: { apply strAssoc. apply t. }
       apply IHz'.
-      1: { intro p'. apply PointwiseMultLeft1. assumption. }
-      apply (PointwiseReplaceInStrHead _ _ _ (X ° (A ° Z)) (X ° A ° Z)).
+      1: { intro p'. apply pointwiseMultLeft1. assumption. }
+      apply (pointwiseReplaceInStrHead _ _ _ (X ° (A ° Z)) (X ° A ° Z)).
       1: { intro p'. rewrite strAssoc. 2: apply t. apply iff_refl. }
       assumption.
   - intro X. simpl.
     apply (IHx (X ° X')).
 Qed.
 
-Lemma PointwiseReplaceInSeq U W (t: transitive U W) v x A B z CC p :
+Lemma pointwiseReplaceInSeq U W (t: transitive U W) v x A B z CC p :
   (forall p', formValuation U W v A p' -> formValuation U W v B p') ->
   seqValuation U W v ((x ++ B :: z) ⇒ CC) p ->
   seqValuation U W v ((x ++ A :: z) ⇒ CC) p.
@@ -350,9 +350,9 @@ Proof.
   intros H.
   destruct x as [| X x].
   - simpl. intros HD AtA.
-    apply HD. apply (PointwiseReplaceInStrHead1 U W v A B). all: auto.
+    apply HD. apply (pointwiseReplaceInStrHead1 U W v A B). all: auto.
   - simpl. intros TL AtA.
-    apply TL. apply (PointwiseReplaceInStrTail U W t v X x A B z). all: auto.
+    apply TL. apply (pointwiseReplaceInStrTail U W t v X x A B z). all: auto.
 Qed.
 
 Lemma strValuationStepInMiddle U W (t: transitive U W) v X x A B z p:
@@ -362,7 +362,7 @@ Proof.
   generalize dependent X.
   induction x as [| X x].
   - simpl. intro X.
-    apply PointwiseReplaceInStrHead.
+    apply pointwiseReplaceInStrHead.
     intros p'. apply strAssoc. apply t.
   - simpl. intros X'.
     apply (IHx (X' ° X)).
@@ -399,7 +399,7 @@ Proof.
     set (TG := pullMultRight (pullMultRight X (a :: x)) y). simpl in TG. subst TG.
     set (TG := pullMultRight X ((a :: x) ++ y)). simpl in TG. subst TG.
     rewrite pullMultRightExtraction.
-    rewrite <- (PointwiseMultRight U W v _ _ _ p (IHx a)).
+    rewrite <- (pointwiseMultRight U W v _ _ _ p (IHx a)).
     apply iff_refl.
     apply t.
 Qed.
@@ -421,7 +421,7 @@ Proof.
     rewrite pullMultRightExtraction. 2: apply t.
     rewrite pullMultRightI.  2: apply t.
     rewrite pullMultRightExtraction.  2: apply t.
-    rewrite (PointwiseMultRight U W v _ _ _ p (IHx X')).
+    rewrite (pointwiseMultRight U W v _ _ _ p (IHx X')).
     apply iff_refl.
 Qed.
 
@@ -455,7 +455,7 @@ Proof.
   apply (H1 U W t v allΓ p H2).
 Qed.
 
-Lemma Soundness: forall Γ s, Γ ⊢ s -> Γ ⊨ s.
+Lemma soundness: forall Γ s, Γ ⊢ s -> Γ ⊨ s.
 Proof.
   intros Γ s [NE HH].
   induction HH as
@@ -509,20 +509,20 @@ Proof.
         **  apply (mulArrow Γ [] B Z z CC). assumption.
         **  unfold semConsequence. split. 1: apply NE.
             intros.
-            rewrite MulInSeqTrue. 2: apply t0.
+            rewrite mulInSeqTrue. 2: apply t0.
             simpl.
             unfold semConsequence in IHHH2.
             destruct IHHH2 as [_ IHHH2].
             apply (IHHH2 U0 W0 t0 v0 H).
         ** simpl in StrVal.
            apply strValuationStepInMiddle in StrVal. 2:apply t.
-           apply PointwiseReplaceInStrTail with (A:=(A \\ B) ° Z). 1: apply t.
-           { apply LeftMultRearrange. apply t. }
+           apply pointwiseReplaceInStrTail with (A:=(A \\ B) ° Z). 1: apply t.
+           { apply leftMultRearrange. apply t. }
            assumption.
     + intros CC HH2 IHHH2 p. simpl.
       intros StrVal.
       set (IHy':= IHy (Y \\ CC)).
-      assert (GenProof Γ ((y ++ B :: z) ⇒ (Y \\ CC))) as HH2'. {
+      assert (genProof Γ ((y ++ B :: z) ⇒ (Y \\ CC))) as HH2'. {
         destruct y as [| Y' y'].
         - simpl.
           apply (arrowLeft Γ B z Y CC HH2).
@@ -576,7 +576,7 @@ Proof.
           unfold semConsequence.
           split. 1:assumption.
           intros U0 W0 t0 v0 allΓ0.
-          apply (MulInSeqTrue U0 W0 t0 v0).
+          apply (mulInSeqTrue U0 W0 t0 v0).
           unfold semConsequence in IHHH2.
           destruct IHHH2 as [_ IHHH2].
           apply (IHHH2 U0 W0 t0 v0 allΓ0).
@@ -585,9 +585,9 @@ Proof.
         rewrite <- app_assoc.
         set (tmp := [Y] ++ B // A :: X :: x ++ []). simpl in tmp. subst tmp.
         rewrite (seqValuationStepInMiddle _ _ t).
-        apply (PointwiseReplaceInSeq _ _ t _
+        apply (pointwiseReplaceInSeq _ _ t _
                                      y (Y ° (B // A)) ((Y ° B) // A) (X :: x ++ []) CC p).
-        ** apply (RightMultRearrange _ _ t).
+        ** apply (rightMultRearrange _ _ t).
         ** assumption.
     + intros CC HH2 IHHH2.
       rewrite app_comm_cons in HH2. rewrite app_assoc in HH2.
@@ -624,7 +624,7 @@ Proof.
     split. 1:assumption.
     intros U W t v allΓ.
     destruct IHHH as [_ IHHH].
-    rewrite MulInSeqTrue. 2:apply t.
+    rewrite mulInSeqTrue. 2:apply t.
     apply IHHH. 1:apply t.
     apply allΓ.
   - unfold semConsequence.

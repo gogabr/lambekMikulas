@@ -28,9 +28,9 @@ Section Semantics.
 
   Definition subW := Wpoint -> Prop.
 
-  Context (valuation: types -> subW).
+  Context (valuation: elem_cat -> subW).
 
-  Fixpoint formValuation (A: Formula): subW :=
+  Fixpoint formValuation (A: formula): subW :=
     match A with
     | var X => valuation X
     | mul A B =>
@@ -47,7 +47,7 @@ Section Semantics.
       fun x: Wpoint => forall y (_: av y) z (_: C x y z), bv z
     end .
 
-  Fixpoint strValuation (X: Formula) (x: str): subW :=
+  Fixpoint strValuation (X: formula) (x: str): subW :=
     match x with
     | [] => formValuation X
     | (A :: x') => strValuation (X ° A) x'
@@ -105,7 +105,7 @@ Section Semantics.
       unfold C. auto.
   Qed.
 
-  Lemma pullMultRightExtraction (A  X: Formula) (x : str):
+  Lemma pullMultRightExtraction (A  X: formula) (x : str):
     forall p,
       formValuation (pullMultRight (A ° X) x) p <-> formValuation (A ° pullMultRight  X x) p.
   Proof.
@@ -159,7 +159,7 @@ End Semantics.
 
 Definition semConsequence (Γ: list sequent) (s: sequent) :=
   (forall s', In s' Γ -> nonEmptySequent s') /\
-  forall (U: Set) (W: relation U) (t: transitive U W) (v: types -> subW U W),
+  forall (U: Set) (W: relation U) (t: transitive U W) (v: elem_cat -> subW U W),
     (forall s', (In s' Γ) -> seqTrue U W v s') -> seqTrue U W v s.
 
 Notation "Γ ⊨ s" := (semConsequence Γ s) (at level 60, no associativity).

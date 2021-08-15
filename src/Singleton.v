@@ -6,42 +6,42 @@ Require Import NonEmptyList.
 Require Import LambekSyntax.
 Require Import Semantics.
 
-Inductive Singleton: Set := Sing.
-Definition TotalOnSingleton (_ _:Singleton) := True.
-Definition AllSingleton (_:Wpoint Singleton TotalOnSingleton) := True.
-Definition ValOnSingleton := fun (_:types) => AllSingleton.
-Definition WpointOnSingleton := exist (fun (_: Singleton * Singleton) => True) (Sing, Sing) I.
+Inductive singleton: Set := Sing.
+Definition totalOnSingleton (_ _:singleton) := True.
+Definition allSingleton (_:Wpoint singleton totalOnSingleton) := True.
+Definition valOnSingleton := fun (_:elem_cat) => allSingleton.
+Definition WpointOnSingleton := exist (fun (_: singleton * singleton) => True) (Sing, Sing) I.
 
-Lemma TransitiveOnSingleton : transitive Singleton TotalOnSingleton.
+Lemma transitiveOnSingleton : transitive singleton totalOnSingleton.
 Proof.
   unfold transitive.
   intros x y z T1 T2.
-  unfold TotalOnSingleton.
+  unfold totalOnSingleton.
   exact I.
 Qed.
 
-Lemma AllEqualOnSingleton: forall (x y: Wpoint Singleton TotalOnSingleton), x = y.
+Lemma allEqualOnSingleton: forall (x y: Wpoint singleton totalOnSingleton), x = y.
 Proof.
   intros.
   destruct x as [[[] []] []]. destruct y as [[[] []] []]. reflexivity.
 Qed.
 
-Lemma AllTrueOnSingleton: forall (A: Formula)  (p: Wpoint Singleton TotalOnSingleton),
-    formValuation Singleton TotalOnSingleton ValOnSingleton A p.
+Lemma allTrueOnSingleton: forall (A: formula)  (p: Wpoint singleton totalOnSingleton),
+    formValuation singleton totalOnSingleton valOnSingleton A p.
   intros. induction A as [v| A IHA B IHB | A IHA B IHB | A IHA B IHB].
   - apply I.
   - simpl. intros.
-    assert (p = z) as PZ by apply AllEqualOnSingleton.
+    assert (p = z) as PZ by apply allEqualOnSingleton.
     rewrite <- PZ. assumption.
   - simpl. intros.
-    assert (p = z) as PZ by apply AllEqualOnSingleton.
+    assert (p = z) as PZ by apply allEqualOnSingleton.
     rewrite <- PZ. assumption.
   - simpl.
     exists WpointOnSingleton. split.
-    + assert (p = WpointOnSingleton) as PP by apply AllEqualOnSingleton.
+    + assert (p = WpointOnSingleton) as PP by apply allEqualOnSingleton.
       rewrite <- PP. assumption.
     + exists WpointOnSingleton. split.
-      * assert (p = WpointOnSingleton) as PP by apply AllEqualOnSingleton.
+      * assert (p = WpointOnSingleton) as PP by apply allEqualOnSingleton.
         rewrite <- PP. assumption.
       * unfold C. simpl. destruct p. simpl. destruct x as [[] []]. simpl. auto.
 Qed.

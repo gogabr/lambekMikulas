@@ -8,5 +8,5 @@ Require Import SyntaxOps.
 Require Import Semantics.
 Require Import Singleton.
 
-Lemma Completeness: forall Γ s, Γ ⊨ s -> Γ ⊢ s.
+Lemma completeness: forall Γ s, Γ ⊨ s -> Γ ⊢ s.
 Admitted.

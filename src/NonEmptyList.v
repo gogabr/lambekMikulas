@@ -28,7 +28,6 @@ Defined.
 Definition rSplitNE {T: Type} (l: list T) (p: l <> []):
                              sig (fun s: list T * T => l = fst s ++ [snd s]).
 Proof.
-  Search _ (?x ++ ?y::?z).
   destruct (exists_last p) as [x [X a]].
   exists (x,X).
   simpl.

@@ -1,0 +1,2 @@
+-R src lambek 
+src/Completeness.v src/LambekSyntax.v src/NonEmptyList.v src/Semantics.v src/Singleton.v src/Soundness.v src/SyntaxOps.v

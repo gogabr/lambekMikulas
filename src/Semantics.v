@@ -6,9 +6,14 @@ Require Import LambekSyntax.
 Require Import SyntaxOps.
 
 Section Semantics.
-  Context (U: Type).
-  Context (W: relation U).
-  Context (t: transitive U W).
+
+  Definition frame := {UW : { U : Type & relation U } | transitive (projT1 UW) (projT2 UW) }.
+
+  Context (F: frame).
+
+  Definition U: Type := projT1 (proj1_sig F).
+  Definition W: relation U := projT2 (proj1_sig F).
+  Definition transitivity: transitive U W := proj2_sig F.
 
   Definition Wpred (x: U*U) := W (fst x) (snd x).
   Definition Wpoint := sig Wpred.
@@ -19,7 +24,7 @@ Section Semantics.
     simpl in e. rewrite <- e in py.
     exists (a,c).
     simpl. simpl in px. simpl in py.
-    apply (t _ _ _ px py).
+    apply (transitivity _ _ _ px py).
   Defined.
 
   Definition C (x y z: Wpoint): Prop := fst (proj1_sig x) = fst (proj1_sig z)
@@ -28,11 +33,12 @@ Section Semantics.
 
   Definition subW := Wpoint -> Prop.
 
-  Context (valuation: elem_cat -> subW).
+  Definition valuation := elem_cat -> subW.
+  Context (v: valuation).
 
   Fixpoint formValuation (A: formula): subW :=
     match A with
-    | var X => valuation X
+    | var X => v X
     | mul A B =>
       let av := formValuation A in
       let bv := formValuation B in
@@ -77,7 +83,7 @@ Section Semantics.
       destruct w as [[u1' u3''] Ww].
       destruct p as [[u1'' u4'] Wp].
       simpl in *. subst.
-      set (w' := exist Wpred (u2', u4') (t _ _ _ Wy Wz)).
+      set (w' := exist Wpred (u2', u4') (transitivity _ _ _ Wy Wz)).
       exists w'. split. 2:auto.
       set (y := exist Wpred (u2', u3') Wy).
       exists y. split. 1: assumption.
@@ -93,7 +99,7 @@ Section Semantics.
     destruct w as [[u2'' u4'] Ww].
     destruct p as [[u1' u4''] Wp].
     simpl in *. subst.
-    set (w' := exist Wpred (u1', u3') (t _ _ _ Wx Wy)).
+    set (w' := exist Wpred (u1', u3') (transitivity _ _ _ Wx Wy)).
     exists w'. split.
     - set (x := exist Wpred (u1', u2'') Wx).
       exists x. split. 1:assumption.
@@ -159,7 +165,7 @@ End Semantics.
 
 Definition semConsequence (Γ: list sequent) (s: sequent) :=
   (forall s', In s' Γ -> nonEmptySequent s') /\
-  forall (U: Set) (W: relation U) (t: transitive U W) (v: elem_cat -> subW U W),
-    (forall s', (In s' Γ) -> seqTrue U W v s') -> seqTrue U W v s.
+  forall (F: frame) (v: valuation F),
+    (forall s', (In s' Γ) -> seqTrue F v s') -> seqTrue F v s.
 
 Notation "Γ ⊨ s" := (semConsequence Γ s) (at level 60, no associativity).

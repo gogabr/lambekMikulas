@@ -8,9 +8,6 @@ Require Import Semantics.
 
 Inductive singleton: Set := Sing.
 Definition totalOnSingleton (_ _:singleton) := True.
-Definition allSingleton (_:Wpoint singleton totalOnSingleton) := True.
-Definition valOnSingleton := fun (_:elem_cat) => allSingleton.
-Definition WpointOnSingleton := exist (fun (_: singleton * singleton) => True) (Sing, Sing) I.
 
 Lemma transitiveOnSingleton : transitive singleton totalOnSingleton.
 Proof.
@@ -20,14 +17,20 @@ Proof.
   exact I.
 Qed.
 
-Lemma allEqualOnSingleton: forall (x y: Wpoint singleton totalOnSingleton), x = y.
+Definition singletonFrame: frame := exist _ (existT _ _ totalOnSingleton) transitiveOnSingleton.
+
+Definition allSingleton (_:Wpoint singletonFrame) := True.
+Definition valOnSingleton := fun (_:elem_cat) => allSingleton.
+Definition WpointOnSingleton := exist (fun (_: singleton * singleton) => True) (Sing, Sing) I.
+
+Lemma allEqualOnSingleton: forall (x y: Wpoint singletonFrame), x = y.
 Proof.
   intros.
   destruct x as [[[] []] []]. destruct y as [[[] []] []]. reflexivity.
 Qed.
 
-Lemma allTrueOnSingleton: forall (A: formula)  (p: Wpoint singleton totalOnSingleton),
-    formValuation singleton totalOnSingleton valOnSingleton A p.
+Lemma allTrueOnSingleton: forall (A: formula)  (p: Wpoint singletonFrame),
+    formValuation singletonFrame valOnSingleton A p.
   intros. induction A as [v| A IHA B IHB | A IHA B IHB | A IHA B IHB].
   - apply I.
   - simpl. intros.

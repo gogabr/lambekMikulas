@@ -7,34 +7,41 @@ Require Import SyntaxOps.
 
 Section Semantics.
 
-  Definition frame := {UW : { U : Type & relation U } | transitive (projT1 UW) (projT2 UW) }.
+  Section Frame.
+    Definition frame := {UW : { U : Type & relation U } | transitive (projT1 UW) (projT2 UW) }.
 
-  Context (F: frame).
+    Context {F: frame}.
 
-  Definition U: Type := projT1 (proj1_sig F).
-  Definition W: relation U := projT2 (proj1_sig F).
-  Definition transitivity: transitive U W := proj2_sig F.
+    Definition U: Type := projT1 (proj1_sig F).
+    Definition W: relation U := projT2 (proj1_sig F).
+    Definition transitivity: transitive U W := proj2_sig F.
 
-  Definition Wpred (x: U*U) := W (fst x) (snd x).
-  Definition Wpoint := sig Wpred.
-  Definition Cf (x y: Wpoint) (e: snd (proj1_sig x) = fst (proj1_sig y)) : Wpoint.
-  Proof.
-    destruct x as [x px]. destruct x as [a b].
-    destruct y as [y py]. destruct y as [b' c].
-    simpl in e. rewrite <- e in py.
-    exists (a,c).
-    simpl. simpl in px. simpl in py.
-    apply (transitivity _ _ _ px py).
-  Defined.
+    Definition Wpred (x: U*U) := W (fst x) (snd x).
+    Definition Wpoint := sig Wpred.
+    Definition Cf (x y: Wpoint) (e: snd (proj1_sig x) = fst (proj1_sig y)) : Wpoint.
+    Proof.
+      destruct x as [x px]. destruct x as [a b].
+      destruct y as [y py]. destruct y as [b' c].
+      simpl in e. rewrite <- e in py.
+      exists (a,c).
+      simpl. simpl in px. simpl in py.
+      apply (transitivity _ _ _ px py).
+    Defined.
 
-  Definition C (x y z: Wpoint): Prop := fst (proj1_sig x) = fst (proj1_sig z)
-                                        /\ snd (proj1_sig x) = fst (proj1_sig y)
-                                        /\ snd (proj1_sig y) = snd (proj1_sig z).
+    Definition C (x y z: Wpoint): Prop := fst (proj1_sig x) = fst (proj1_sig z)
+                                          /\ snd (proj1_sig x) = fst (proj1_sig y)
+                                          /\ snd (proj1_sig y) = snd (proj1_sig z).
+  End Frame.
 
-  Definition subW := Wpoint -> Prop.
+  Definition model := { F: frame & elem_cat -> @Wpoint F -> Prop }.
 
-  Definition valuation := elem_cat -> subW.
-  Context (v: valuation).
+  Context (M: model).
+
+  Definition F := projT1 M.
+
+  Definition subW := @Wpoint F -> Prop.
+
+  Definition v: elem_cat -> subW := projT2 M.
 
   Fixpoint formValuation (A: formula): subW :=
     match A with
@@ -61,7 +68,7 @@ Section Semantics.
 
   Definition seqValuation (s: sequent): subW :=
     match s with
-    | (X :: x, A) => fun p => (strValuation X x p) ->  (formValuation A p)
+    | (X :: x, A) => fun p => (strValuation X x p) -> (formValuation A p)
     | ([], A) => fun _ => False
     end.
 
@@ -69,7 +76,7 @@ Section Semantics.
     forall p, seqValuation s p.
 
   Lemma strAssoc: forall X Y Z p,
-      formValuation ((X ° Y) ° Z)  p <-> formValuation (X ° (Y ° Z)) p.
+      formValuation ((X ° Y) ° Z) p <-> formValuation (X ° (Y ° Z)) p.
   Proof.
     intros. simpl. split; intros H.
     { destruct H as [w [[x [FVX [y [FVY Cxyw]]]] [z [FVZ Cwzp]]]].
@@ -165,7 +172,7 @@ End Semantics.
 
 Definition semConsequence (Γ: list sequent) (s: sequent) :=
   (forall s', In s' Γ -> nonEmptySequent s') /\
-  forall (F: frame) (v: valuation F),
-    (forall s', (In s' Γ) -> seqTrue F v s') -> seqTrue F v s.
+  forall M: model,
+    (forall s', (In s' Γ) -> seqTrue M s') -> seqTrue M s.
 
 Notation "Γ ⊨ s" := (semConsequence Γ s) (at level 60, no associativity).

@@ -18,19 +18,23 @@ Proof.
 Qed.
 
 Definition singletonFrame: frame := exist _ (existT _ _ totalOnSingleton) transitiveOnSingleton.
+Definition singletonW := @Wpoint singletonFrame.
 
-Definition allSingleton (_:Wpoint singletonFrame) := True.
+Definition allSingleton (_:singletonW) := True.
 Definition valOnSingleton := fun (_:elem_cat) => allSingleton.
+
+Definition singletonModel : model := existT _ singletonFrame valOnSingleton.
+
 Definition WpointOnSingleton := exist (fun (_: singleton * singleton) => True) (Sing, Sing) I.
 
-Lemma allEqualOnSingleton: forall (x y: Wpoint singletonFrame), x = y.
+Lemma allEqualOnSingleton: forall (x y: singletonW), x = y.
 Proof.
   intros.
   destruct x as [[[] []] []]. destruct y as [[[] []] []]. reflexivity.
 Qed.
 
-Lemma allTrueOnSingleton: forall (A: formula)  (p: Wpoint singletonFrame),
-    formValuation singletonFrame valOnSingleton A p.
+Lemma allTrueOnSingleton: forall (A: formula)  (p: @Wpoint singletonFrame),
+    formValuation singletonModel A p.
   intros. induction A as [v| A IHA B IHB | A IHA B IHB | A IHA B IHB].
   - apply I.
   - simpl. intros.
